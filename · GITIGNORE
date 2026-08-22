@@ -1,0 +1,40 @@
+# IDE and Editor
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Node.js (if using any build tools in future)
+node_modules/
+npm-debug.log
+yarn-error.log
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# OS specific
+Thumbs.db
+.DS_Store
+._*
+
+# Logs
+*.log
+
+# Temporary files
+temp/
+tmp/
+*.tmp
+
+# Build output (if adding build tools later)
+dist/
+build/
+
+# Testing
+coverage/
+.nyc_output/
