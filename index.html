@@ -8,6 +8,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 :root{
 --ink:#16231f; --sidebar:#0f2e2b; --sidebar-2:#173f39; --canvas:#f4f5f0;
@@ -108,6 +109,7 @@ main{padding:28px 36px 40px;overflow:hidden}
 .mobile-nav{display:none}
 .toast{position:fixed;right:22px;bottom:22px;background:var(--ink);color:#fff;border-radius:11px;padding:12px 16px;box-shadow:var(--shadow);transform:translateY(80px);opacity:0;transition:.25s;font-size:13px;z-index:60;max-width:calc(100vw - 44px)}
 .toast.show{transform:translateY(0);opacity:1}
+.loading-row{padding:20px 0;text-align:center;color:var(--muted);font-size:12.5px}
 #loginScreen{position:fixed;inset:0;background:linear-gradient(135deg,#0f2e2b,#1a463f 55%,#2f6357);display:flex;align-items:center;justify-content:center;z-index:100;padding:20px}
 .login-card{background:#fff;border-radius:18px;padding:34px 32px;width:100%;max-width:360px;box-shadow:var(--shadow)}
 .login-card .brand{color:var(--ink);margin-bottom:6px}
@@ -132,6 +134,7 @@ main{padding:28px 36px 40px;overflow:hidden}
 .btn-ghost{flex:1;border:1px solid var(--line);background:#fff;border-radius:9px;padding:11px;cursor:pointer;font:inherit;font-weight:600;color:var(--muted)}
 .btn-submit{flex:1;border:0;border-radius:9px;background:var(--ink);color:#fff;padding:11px;cursor:pointer;font:inherit;font-weight:600}
 .btn-submit:hover{background:#0b1512}
+.btn-submit:disabled{opacity:.6;cursor:default}
 .cred-row{display:flex;justify-content:space-between;align-items:center;padding:11px 0;border-top:1px solid var(--line);font-size:12.5px;gap:10px}
 .cred-row:first-of-type{border-top:0}
 .cred-row b{display:block;font-family:'Space Grotesk',sans-serif;font-size:13px}
@@ -196,7 +199,7 @@ main{padding:18px 16px 80px}
 <input id="loginPass" type="password" placeholder="••••••••" autocomplete="current-password" />
 <div class="field-error" id="loginError">Incorrect username or password.</div>
 </div>
-<button class="btn-primary" onclick="attemptLogin()">Sign in</button>
+<button class="btn-primary" id="loginBtn" onclick="attemptLogin()">Sign in</button>
 <div class="login-hint">Demo accounts — <b>owner / owner123</b> (full access incl. login credentials) and <b>staff / staff123</b> (studio access only).</div>
 </div>
 </div>
@@ -254,7 +257,7 @@ main{padding:18px 16px 80px}
 </section>
 
 <section class="metrics">
-<article class="metric"><div class="metric-head"><span>Active members</span><span class="metric-icon">◐</span></div><strong id="statMembers">968</strong><span class="trend">↑ 6.1% this month</span></article>
+<article class="metric"><div class="metric-head"><span>Active members</span><span class="metric-icon">◐</span></div><strong id="statMembers">0</strong><span class="trend">↑ 6.1% this month</span></article>
 <article class="metric"><div class="metric-head"><span>Monthly revenue</span><span class="metric-icon">₹</span></div><strong>₹3.64L</strong><span class="trend">↑ 9.8% this month</span></article>
 <article class="metric"><div class="metric-head"><span>Check-ins today</span><span class="metric-icon">✓</span></div><strong>142</strong><span class="trend">↑ 11% vs last Friday</span></article>
 <article class="metric"><div class="metric-head"><span>New enquiries</span><span class="metric-icon">◔</span></div><strong id="statEnquiries">21</strong><span class="trend down">↓ 3.4% this week</span></article>
@@ -343,32 +346,64 @@ main{padding:18px 16px 80px}
 <div class="toast" id="toast"></div>
 
 <script>
-// ===================== DATA =====================
-// member fields: [initials, name, note/log, plan, status, statusClass]
-let members=[
-['RS','Riya Shah','Checked in 6 min ago','Unlimited','Active',''],
-['VN','Vikram Nair','Membership expires in 2 days','Core 8','Due soon','due'],
-['SD','Sana Dsouza','Checked in 19 min ago','Annual','Active',''],
-['AM','Arjun Malhotra','Personal training session tomorrow','Elite','Active',''],
-['ZK','Zara Khan','Membership expires in 4 days','Core 8','Due soon','due'],
-['PR','Pooja Reddy','Checked in 2 hours ago','Unlimited','Active',''],
-['KT','Karan Trivedi','No check-in for 12 days','Annual','Inactive','inactive'],
-['MB','Meher Bhatt','Membership expires in 6 days','Core 8','Due soon','due']
-];
+// ===================== SUPABASE CONFIG =====================
+// Paste your project's values here — Project Settings → API in your Supabase dashboard.
+const SUPABASE_URL = 'https://YOUR-PROJECT-REF.supabase.co';
+const SUPABASE_ANON_KEY = 'YOUR-ANON-PUBLIC-KEY';
 
-let leads=[
-{name:'Aisha Khan', note:'Free trial completed', pct:80, tag:'Hot', cls:'hot'},
-{name:'Naveen Thomas', note:'Studio tour booked today', pct:52, tag:'Warm', cls:''},
-{name:'Priyanka Pillai', note:'Enquiry from Instagram', pct:24, tag:'New', cls:''}
-];
+const supabaseConfigured = !SUPABASE_URL.includes('YOUR-PROJECT') && !SUPABASE_ANON_KEY.includes('YOUR-ANON');
+let sb = null;
+if(supabaseConfigured){
+sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+} else {
+console.warn('Supabase is not configured — set SUPABASE_URL and SUPABASE_ANON_KEY near the top of the <script> tag. Falling back to empty in-memory data.');
+}
 
-let sessions=[
-{time:'06:00 AM', name:'Vinyasa Flow', trainer:'Meera Joshi', studio:'Studio A', booked:'17/20'},
-{time:'07:30 AM', name:'Strength Circuit', trainer:'Kabir Anand', studio:'Studio B', booked:'15/16'},
-{time:'06:30 PM', name:'Mat Pilates', trainer:'Tanya Bose', studio:'Studio A', booked:'12/15'}
-];
+function autoInitials(name){
+return name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+}
 
+// ===================== DATA (loaded from Supabase after login) =====================
+// member objects: {id, initials, name, note, plan, status, statusClass}
+let members=[];
+// lead objects: {id, name, note, pct, tag, cls}
+let leads=[];
+// session objects: {id, time, name, trainer, studio, booked}
+let sessions=[];
 let statEnquiries=21;
+
+async function loadAllData(){
+if(!supabaseConfigured){
+notify('Supabase not configured yet — see comments at top of the <script> tag');
+renderMembers(); renderLeads(); renderSchedule();
+return;
+}
+document.getElementById('memberList').innerHTML='<div class="loading-row">Loading…</div>';
+document.getElementById('leadsPage').innerHTML='<div class="loading-row">Loading…</div>';
+document.getElementById('scheduleFull').innerHTML='<div class="loading-row">Loading…</div>';
+await Promise.all([loadMembers(), loadLeads(), loadSessions()]);
+}
+
+async function loadMembers(){
+const {data, error} = await sb.from('members').select('*').order('created_at',{ascending:false});
+if(error){ notify('Could not load members'); console.error(error); return; }
+members = data.map(m=>({id:m.id, initials:m.initials||autoInitials(m.name), name:m.name, note:m.note||'', plan:m.plan||'Core 8', status:m.status||'Active', statusClass:m.status_class||''}));
+renderMembers();
+}
+
+async function loadLeads(){
+const {data, error} = await sb.from('leads').select('*').order('created_at',{ascending:false});
+if(error){ notify('Could not load leads'); console.error(error); return; }
+leads = data.map(l=>({id:l.id, name:l.name, note:l.note||'', pct: l.pct===null||l.pct===undefined?15:l.pct, tag:l.tag||'New', cls:l.cls||''}));
+renderLeads();
+}
+
+async function loadSessions(){
+const {data, error} = await sb.from('sessions').select('*').order('created_at',{ascending:true});
+if(error){ notify('Could not load sessions'); console.error(error); return; }
+sessions = data.map(s=>({id:s.id, time:s.time, name:s.name, trainer:s.trainer, studio:s.studio, booked:s.booked}));
+renderSchedule();
+}
 
 let credentials=[
 {user:'owner', pass:'owner123', role:'Owner', display:'Meera Joshi'},
@@ -392,6 +427,7 @@ const initials=match.display.split(' ').map(w=>w[0]).join('').slice(0,2).toUpper
 document.getElementById('avatarBtn').textContent=initials;
 renderOwnerNav();
 notify('Signed in as '+match.display+' ('+match.role+')');
+loadAllData();
 }
 
 function renderOwnerNav(){
@@ -498,40 +534,45 @@ openModal(`
 `);
 }
 
-function submitAddMember(e){
+async function submitAddMember(e){
 e.preventDefault();
+if(!supabaseConfigured){ notify('Supabase not configured — cannot save'); return; }
 const name=document.getElementById('mName').value.trim();
 const plan=document.getElementById('mPlan').value;
-const initials=name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
-members.unshift([initials,name,'Just joined · '+document.getElementById('mPhone').value,plan,'Active','']);
+const note='Just joined · '+document.getElementById('mPhone').value;
+const initials=autoInitials(name);
+const {data, error} = await sb.from('members').insert({initials, name, note, plan, status:'Active', status_class:''}).select().single();
+if(error){ notify('Could not save member'); console.error(error); return; }
+members.unshift({id:data.id, initials:data.initials, name:data.name, note:data.note, plan:data.plan, status:data.status, statusClass:data.status_class});
 renderMembers();
 closeModal();
 notify(name+' added as a new member');
 }
 
 // ===================== EDIT MEMBER =====================
-function openEditMemberModal(i){
-const m=members[i];
+function openEditMemberModal(id){
+const m=members.find(x=>x.id===id);
+if(!m) return;
 openModal(`
 <div class="modal-head"><h3>Edit member</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
-<form onsubmit="submitEditMember(event, ${i})">
-<div class="field"><label>Full name</label><input id="emName" value="${m[1]}" required /></div>
+<form onsubmit="submitEditMember(event, '${id}')">
+<div class="field"><label>Full name</label><input id="emName" value="${m.name}" required /></div>
 <div class="field"><label>Plan</label>
 <select id="emPlan">
-<option ${m[3]==='Unlimited'?'selected':''}>Unlimited</option>
-<option ${m[3]==='Annual'?'selected':''}>Annual</option>
-<option ${m[3]==='Core 8'?'selected':''}>Core 8</option>
-<option ${m[3]==='Elite'?'selected':''}>Elite</option>
+<option ${m.plan==='Unlimited'?'selected':''}>Unlimited</option>
+<option ${m.plan==='Annual'?'selected':''}>Annual</option>
+<option ${m.plan==='Core 8'?'selected':''}>Core 8</option>
+<option ${m.plan==='Elite'?'selected':''}>Elite</option>
 </select>
 </div>
 <div class="field"><label>Status</label>
 <select id="emStatus">
-<option value="Active" ${m[4]==='Active'?'selected':''}>Active</option>
-<option value="Due soon" ${m[4]==='Due soon'?'selected':''}>Due soon</option>
-<option value="Inactive" ${m[4]==='Inactive'?'selected':''}>Inactive</option>
+<option value="Active" ${m.status==='Active'?'selected':''}>Active</option>
+<option value="Due soon" ${m.status==='Due soon'?'selected':''}>Due soon</option>
+<option value="Inactive" ${m.status==='Inactive'?'selected':''}>Inactive</option>
 </select>
 </div>
-<div class="field"><label>Activity log / note</label><textarea id="emNote" rows="3">${m[2]}</textarea></div>
+<div class="field"><label>Activity log / note</label><textarea id="emNote" rows="3">${m.note}</textarea></div>
 <div class="form-actions">
 <button type="button" class="btn-ghost" onclick="closeModal()">Cancel</button>
 <button type="submit" class="btn-submit">Save changes</button>
@@ -540,15 +581,19 @@ openModal(`
 `);
 }
 
-function submitEditMember(e,i){
+async function submitEditMember(e,id){
 e.preventDefault();
+if(!supabaseConfigured){ notify('Supabase not configured — cannot save'); return; }
 const name=document.getElementById('emName').value.trim();
 const plan=document.getElementById('emPlan').value;
 const status=document.getElementById('emStatus').value;
 const note=document.getElementById('emNote').value.trim();
-const initials=name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
 const statusCls = status==='Due soon'?'due':(status==='Inactive'?'inactive':'');
-members[i]=[initials,name,note,plan,status,statusCls];
+const initials=autoInitials(name);
+const {error} = await sb.from('members').update({initials, name, note, plan, status, status_class:statusCls}).eq('id', id);
+if(error){ notify('Could not update member'); console.error(error); return; }
+const m=members.find(x=>x.id===id);
+if(m) Object.assign(m, {initials, name, note, plan, status, statusClass:statusCls});
 renderMembers();
 closeModal();
 notify(name+"'s details updated");
@@ -574,27 +619,35 @@ openModal(`
 `);
 }
 
-function submitCreateSession(e){
+async function submitCreateSession(e){
 e.preventDefault();
+if(!supabaseConfigured){ notify('Supabase not configured — cannot save'); return; }
 const raw=document.getElementById('sTime').value;
 let [h,m]=raw.split(':').map(Number);
 const ampm=h>=12?'PM':'AM'; let h12=h%12; if(h12===0) h12=12;
 const time=String(h12).padStart(2,'0')+':'+String(m).padStart(2,'0')+' '+ampm;
-sessions.push({time, name:document.getElementById('sName').value.trim(), trainer:document.getElementById('sTrainer').value.trim(), studio:document.getElementById('sStudio').value, booked:'0/'+document.getElementById('sCap').value});
+const name=document.getElementById('sName').value.trim();
+const trainer=document.getElementById('sTrainer').value.trim();
+const studio=document.getElementById('sStudio').value;
+const booked='0/'+document.getElementById('sCap').value;
+const {data, error} = await sb.from('sessions').insert({time, name, trainer, studio, booked}).select().single();
+if(error){ notify('Could not save session'); console.error(error); return; }
+sessions.push({id:data.id, time:data.time, name:data.name, trainer:data.trainer, studio:data.studio, booked:data.booked});
 renderSchedule();
 closeModal();
 notify('Session created');
 }
 
 // ===================== EDIT SESSION =====================
-function openEditSessionModal(i){
-const s=sessions[i];
-const parts=s.booked.split('/');
+function openEditSessionModal(id){
+const s=sessions.find(x=>x.id===id);
+if(!s) return;
+const parts=(s.booked||'0/1').split('/');
 const bookedCount=parts[0]||'0';
 const capacity=parts[1]||'1';
 openModal(`
 <div class="modal-head"><h3>Edit session</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
-<form onsubmit="submitEditSession(event, ${i})">
+<form onsubmit="submitEditSession(event, '${id}')">
 <div class="field"><label>Class name</label><input id="esName" value="${s.name}" required /></div>
 <div class="field"><label>Trainer</label><input id="esTrainer" value="${s.trainer}" required /></div>
 <div class="field"><label>Time</label><input id="esTime" value="${s.time}" required /></div>
@@ -614,13 +667,18 @@ openModal(`
 `);
 }
 
-function submitEditSession(e,i){
+async function submitEditSession(e,id){
 e.preventDefault();
-sessions[i].name=document.getElementById('esName').value.trim();
-sessions[i].trainer=document.getElementById('esTrainer').value.trim();
-sessions[i].time=document.getElementById('esTime').value.trim();
-sessions[i].studio=document.getElementById('esStudio').value;
-sessions[i].booked=document.getElementById('esBooked').value+'/'+document.getElementById('esCap').value;
+if(!supabaseConfigured){ notify('Supabase not configured — cannot save'); return; }
+const name=document.getElementById('esName').value.trim();
+const trainer=document.getElementById('esTrainer').value.trim();
+const time=document.getElementById('esTime').value.trim();
+const studio=document.getElementById('esStudio').value;
+const booked=document.getElementById('esBooked').value+'/'+document.getElementById('esCap').value;
+const {error} = await sb.from('sessions').update({name, trainer, time, studio, booked}).eq('id', id);
+if(error){ notify('Could not update session'); console.error(error); return; }
+const s=sessions.find(x=>x.id===id);
+if(s) Object.assign(s, {name, trainer, time, studio, booked});
 renderSchedule();
 closeModal();
 notify('Session updated');
@@ -644,11 +702,17 @@ openModal(`
 `);
 }
 
-function submitAddLead(e){
+async function submitAddLead(e){
 e.preventDefault();
+if(!supabaseConfigured){ notify('Supabase not configured — cannot save'); return; }
 const stage=document.getElementById('lStage').value;
 const pct=stage==='Hot'?75:stage==='Warm'?45:15;
-leads.unshift({name:document.getElementById('lName').value.trim(), note:document.getElementById('lNote').value.trim()||'New enquiry', pct, tag:stage, cls:stage==='Hot'?'hot':''});
+const name=document.getElementById('lName').value.trim();
+const note=document.getElementById('lNote').value.trim()||'New enquiry';
+const cls=stage==='Hot'?'hot':'';
+const {data, error} = await sb.from('leads').insert({name, note, pct, tag:stage, cls}).select().single();
+if(error){ notify('Could not save lead'); console.error(error); return; }
+leads.unshift({id:data.id, name:data.name, note:data.note, pct:data.pct, tag:data.tag, cls:data.cls});
 statEnquiries++;
 renderLeads();
 closeModal();
@@ -656,11 +720,12 @@ notify('Lead added to pipeline');
 }
 
 // ===================== EDIT LEAD =====================
-function openEditLeadModal(i){
-const l=leads[i];
+function openEditLeadModal(id){
+const l=leads.find(x=>x.id===id);
+if(!l) return;
 openModal(`
 <div class="modal-head"><h3>Edit lead</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
-<form onsubmit="submitEditLead(event, ${i})">
+<form onsubmit="submitEditLead(event, '${id}')">
 <div class="field"><label>Full name</label><input id="elName" value="${l.name}" required /></div>
 <div class="field"><label>Source / note</label><input id="elNote" value="${l.note}" /></div>
 <div class="field"><label>Stage</label>
@@ -678,11 +743,18 @@ openModal(`
 `);
 }
 
-function submitEditLead(e,i){
+async function submitEditLead(e,id){
 e.preventDefault();
+if(!supabaseConfigured){ notify('Supabase not configured — cannot save'); return; }
 const stage=document.getElementById('elStage').value;
 const pct=stage==='Hot'?75:stage==='Warm'?45:15;
-leads[i]={name:document.getElementById('elName').value.trim(), note:document.getElementById('elNote').value.trim(), pct, tag:stage, cls:stage==='Hot'?'hot':''};
+const name=document.getElementById('elName').value.trim();
+const note=document.getElementById('elNote').value.trim();
+const cls=stage==='Hot'?'hot':'';
+const {error} = await sb.from('leads').update({name, note, pct, tag:stage, cls}).eq('id', id);
+if(error){ notify('Could not update lead'); console.error(error); return; }
+const l=leads.find(x=>x.id===id);
+if(l) Object.assign(l, {name, note, pct, tag:stage, cls});
 renderLeads();
 closeModal();
 notify('Lead updated');
@@ -693,7 +765,7 @@ function exportCSV(){
 const header=['Name','Status','Note','Plan'];
 const lines=[header.join(',')];
 members.forEach(r=>{
-const row=[r[1],r[4],'"'+r[2].replace(/"/g,'""')+'"',r[3]];
+const row=[r.name,r.status,'"'+r.note.replace(/"/g,'""')+'"',r.plan];
 lines.push(row.join(','));
 });
 const csv=lines.join('\n');
@@ -745,7 +817,7 @@ document.getElementById('statMembers').textContent = members.length;
 
 function rowHtml(r,i){
 const cls = i%3===1?'rose':i%3===2?'amber':'';
-return `<div class="member-row"><div class="member-avatar ${cls}">${r[0]}</div><div><div class="member-name">${r[1]}</div><div class="member-sub">${r[2]}</div></div><div class="plan">${r[3]}</div><span class="status ${r[5]}">${r[4]}</span><button class="edit-btn" onclick="openEditMemberModal(${i})" title="Edit member">✎</button></div>`;
+return `<div class="member-row"><div class="member-avatar ${cls}">${r.initials}</div><div><div class="member-name">${r.name}</div><div class="member-sub">${r.note}</div></div><div class="plan">${r.plan}</div><span class="status ${r.statusClass}">${r.status}</span><button class="edit-btn" onclick="openEditMemberModal('${r.id}')" title="Edit member">✎</button></div>`;
 }
 
 function renderLeads(){
@@ -757,15 +829,15 @@ const dash=leads.slice(0,3).map(l=>`
 document.getElementById('dashLeads').innerHTML=dash;
 
 const full=`<div class="session"><b class="time">NEW</b><div><strong>${leads.filter(l=>l.tag==='New').length} new enquiries</strong><span>Waiting on first follow-up</span></div><span class="tag">New</span></div>
-<div class="session"><b class="time">HOT</b><div><strong>${leads.filter(l=>l.tag==='Hot').length} hot leads</strong><span>Send a plan recommendation today</span></div><span class="tag hot">Action</span></div>` + leads.map((l,i)=>`
-<div class="session"><b class="time" style="font-size:9px">${l.tag.toUpperCase()}</b><div><strong>${l.name}</strong><span>${l.note}</span></div><div class="session-actions"><b class="dots" style="font-size:12px">${l.pct}%</b><button class="edit-btn" onclick="openEditLeadModal(${i})" title="Edit lead">✎</button></div></div>`).join('');
+<div class="session"><b class="time">HOT</b><div><strong>${leads.filter(l=>l.tag==='Hot').length} hot leads</strong><span>Send a plan recommendation today</span></div><span class="tag hot">Action</span></div>` + leads.map(l=>`
+<div class="session"><b class="time" style="font-size:9px">${l.tag.toUpperCase()}</b><div><strong>${l.name}</strong><span>${l.note}</span></div><div class="session-actions"><b class="dots" style="font-size:12px">${l.pct}%</b><button class="edit-btn" onclick="openEditLeadModal('${l.id}')" title="Edit lead">✎</button></div></div>`).join('');
 document.getElementById('leadsPage').innerHTML=full;
 }
 
 function renderSchedule(){
 const dash=sessions.slice(0,3).map(s=>`<div class="session"><b class="time">${s.time.replace(' ','<br>')}</b><div><strong>${s.name}</strong><span>${s.trainer} · ${s.booked} booked</span></div><b class="dots">⋮</b></div>`).join('');
 document.getElementById('dashSchedule').innerHTML=dash;
-document.getElementById('scheduleFull').innerHTML = sessions.map((s,i)=>`<div class="session"><b class="time">${s.time}</b><div><strong>${s.name}</strong><span>${s.trainer} · ${s.studio} · ${s.booked} booked</span></div><button class="edit-btn" style="font-size:16px" onclick="openEditSessionModal(${i})" title="Edit session">✎</button></div>`).join('');
+document.getElementById('scheduleFull').innerHTML = sessions.map(s=>`<div class="session"><b class="time">${s.time}</b><div><strong>${s.name}</strong><span>${s.trainer} · ${s.studio} · ${s.booked} booked</span></div><button class="edit-btn" style="font-size:16px" onclick="openEditSessionModal('${s.id}')" title="Edit session">✎</button></div>`).join('');
 }
 
 function showView(view){
@@ -801,11 +873,6 @@ r.style.display = r.textContent.toLowerCase().includes(q) ? 'grid' : 'none';
 });
 }
 }
-
-// initial render
-renderMembers();
-renderLeads();
-renderSchedule();
 </script>
 </body>
 </html>
