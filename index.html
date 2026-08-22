@@ -1,0 +1,191 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="theme-color" content="#0f2e2b" />
+<title>Pulse — Studio CRM</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/styles.css" />
+</head>
+<body>
+
+<!-- ================= LOGIN SCREEN ================= -->
+<div id="loginScreen">
+  <div class="login-card">
+    <div class="brand"><div class="brand-mark"></div><span>Pulse</span></div>
+    <h1>Sign in to Loop Studio</h1>
+    <p>Studio CRM access is restricted to registered staff and the owner.</p>
+    <div class="field">
+      <label>Username</label>
+      <input id="loginUser" placeholder="e.g. owner" autocomplete="username" />
+    </div>
+    <div class="field">
+      <label>Password</label>
+      <input id="loginPass" type="password" placeholder="••••••••" autocomplete="current-password" />
+      <div class="field-error" id="loginError">Incorrect username or password.</div>
+    </div>
+    <button class="btn-primary" onclick="attemptLogin()">Sign in</button>
+    <div class="login-hint">Demo accounts — <b>owner / owner123</b> (full access incl. login credentials) and <b>staff / staff123</b> (studio access only).</div>
+  </div>
+</div>
+
+<!-- ================= MODAL ================= -->
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal" id="modalBody"></div>
+</div>
+
+<div class="app" id="appRoot">
+  <aside class="sidebar">
+    <div class="brand"><div class="brand-mark"></div><span>Pulse</span></div>
+    <div>
+      <div class="workspace">Loop Studio · Vashi</div>
+      <nav class="nav" aria-label="Main navigation" id="mainNav">
+        <button class="active" data-view="dashboard"><span class="ico">◧</span><span>Dashboard</span></button>
+        <button data-view="members"><span class="ico">◐</span><span>Members</span></button>
+        <button data-view="leads"><span class="ico">◔</span><span>Pipeline</span></button>
+        <button data-view="schedule"><span class="ico">▤</span><span>Sessions</span></button>
+        <button data-view="payments"><span class="ico">◈</span><span>Billing</span></button>
+        <button data-view="reports"><span class="ico">◑</span><span>Insights</span></button>
+      </nav>
+    </div>
+    <div class="side-bottom">
+      <strong>Retention watch</strong>
+      <p>7 members haven't checked in for 10+ days.</p>
+      <button class="ghost-btn" onclick="showView('members')">Review list</button>
+    </div>
+  </aside>
+
+  <main>
+    <header class="topbar">
+      <div><div class="crumb">Friday, 21 August · <b>Loop Studio</b></div><h1 class="title" id="pageTitle">Morning, Meera</h1></div>
+      <div class="top-actions">
+        <label class="search">⌕ <input placeholder="Search members…" oninput="searchMembers(this.value)" /></label>
+        <button class="icon-btn" onclick="notify('3 new notifications')">◎</button>
+        <button class="avatar" id="avatarBtn" title="Account" onclick="openAccountModal()">MJ</button>
+        <button class="add" onclick="openAddMemberModal()">+ Add member</button>
+      </div>
+    </header>
+
+    <section class="tab-page active" id="dashboard">
+      <section class="hero">
+        <div class="hero-copy">
+          <h2>Your Friday classes are 84% full.</h2>
+          <p>9 memberships renew this week — 3 haven't been reached yet.</p>
+          <button class="hero-btn" onclick="showView('members')" style="margin-top:14px">Review renewals →</button>
+        </div>
+        <div class="hero-gauge">
+          <svg width="104" height="104" viewBox="0 0 104 104">
+            <circle cx="52" cy="52" r="44" fill="none" stroke="rgba(255,255,255,.16)" stroke-width="10"/>
+            <circle cx="52" cy="52" r="44" fill="none" stroke="#ff6a3d" stroke-width="10" stroke-linecap="round" stroke-dasharray="276.5" stroke-dashoffset="26"/>
+          </svg>
+          <div class="gauge-label"><b class="mono">91%</b><span>Retention</span></div>
+        </div>
+      </section>
+
+      <section class="metrics">
+        <article class="metric"><div class="metric-head"><span>Active members</span><span class="metric-icon">◐</span></div><strong id="statMembers">968</strong><span class="trend">↑ 6.1% this month</span></article>
+        <article class="metric"><div class="metric-head"><span>Monthly revenue</span><span class="metric-icon">₹</span></div><strong>₹3.64L</strong><span class="trend">↑ 9.8% this month</span></article>
+        <article class="metric"><div class="metric-head"><span>Check-ins today</span><span class="metric-icon">✓</span></div><strong>142</strong><span class="trend">↑ 11% vs last Friday</span></article>
+        <article class="metric"><div class="metric-head"><span>New enquiries</span><span class="metric-icon">◔</span></div><strong id="statEnquiries">21</strong><span class="trend down">↓ 3.4% this week</span></article>
+      </section>
+
+      <section class="grid">
+        <article class="panel">
+          <div class="panel-title"><h3>Membership growth</h3><button class="link" onclick="notify('Opening full growth report')">View report</button></div>
+          <div class="chart"><svg viewBox="0 0 600 180" preserveAspectRatio="none">
+            <defs><linearGradient id="fill" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ff6a3d" stop-opacity=".22"/><stop offset="1" stop-color="#ff6a3d" stop-opacity="0"/></linearGradient></defs>
+            <path d="M0,150 C40,142 60,132 90,136 S135,146 165,124 S210,100 240,110 S285,130 316,100 S356,86 386,100 S424,114 456,78 S502,64 530,58 S574,38 600,30 L600,180 L0,180Z" fill="url(#fill)"/>
+            <path d="M0,150 C40,142 60,132 90,136 S135,146 165,124 S210,100 240,110 S285,130 316,100 S356,86 386,100 S424,114 456,78 S502,64 530,58 S574,38 600,30" fill="none" stroke="#ff6a3d" stroke-width="3"/>
+            <circle cx="456" cy="78" r="5" fill="#fff" stroke="#ff6a3d" stroke-width="3"/>
+          </svg></div>
+          <div class="chart-labels"><span>MAR</span><span>APR</span><span>MAY</span><span>JUN</span><span>JUL</span><span>AUG</span></div>
+        </article>
+        <article class="panel">
+          <div class="panel-title"><h3>Today's sessions</h3><button class="link" onclick="showView('schedule')">See all</button></div>
+          <div class="schedule" id="dashSchedule">
+            <div class="session"><b class="time">06:00<br>AM</b><div><strong>Vinyasa Flow</strong><span>Meera Joshi · 17/20 booked</span></div><b class="dots">⋮</b></div>
+            <div class="session"><b class="time">07:30<br>AM</b><div><strong>Strength Circuit</strong><span>Kabir Anand · 15/16 booked</span></div><b class="dots">⋮</b></div>
+            <div class="session"><b class="time">06:30<br>PM</b><div><strong>Mat Pilates</strong><span>Tanya Bose · 12/15 booked</span></div><b class="dots">⋮</b></div>
+          </div>
+        </article>
+      </section>
+
+      <section class="lower">
+        <article class="panel">
+          <div class="panel-title"><h3>Member activity</h3><button class="link" onclick="showView('members')">View all</button></div>
+          <div id="memberList"></div>
+        </article>
+        <article class="panel">
+          <div class="panel-title"><h3>Sales pipeline</h3><button class="link" onclick="showView('leads')">Manage</button></div>
+          <div id="dashLeads"></div>
+        </article>
+      </section>
+    </section>
+
+    <section class="tab-page" id="members">
+      <div class="panel">
+        <div class="panel-title"><h3>Members <span style="color:#9aa79d;font-weight:500" id="memberCount">(968)</span></h3><button class="add" style="font-size:13px" onclick="openAddMemberModal()">+ Add member</button></div>
+        <div id="membersFull"></div>
+      </div>
+    </section>
+
+    <section class="tab-page" id="leads">
+      <div class="panel">
+        <div class="panel-title"><h3>Pipeline</h3><button class="add" style="font-size:13px" onclick="openAddLeadModal()">+ Add lead</button></div>
+        <div class="schedule" id="leadsPage"></div>
+      </div>
+    </section>
+
+    <section class="tab-page" id="schedule">
+      <div class="panel">
+        <div class="panel-title"><h3>Session schedule — Friday</h3><button class="add" style="font-size:13px" onclick="openCreateSessionModal()">+ Create session</button></div>
+        <div class="schedule" id="scheduleFull">
+          <div class="session"><b class="time">06:00 AM</b><div><strong>Vinyasa Flow</strong><span>Meera Joshi · Studio A · 17/20 booked</span></div><b class="dots">⋮</b></div>
+          <div class="session"><b class="time">07:30 AM</b><div><strong>Strength Circuit</strong><span>Kabir Anand · Studio B · 15/16 booked</span></div><b class="dots">⋮</b></div>
+          <div class="session"><b class="time">06:30 PM</b><div><strong>Mat Pilates</strong><span>Tanya Bose · Studio A · 12/15 booked</span></div><b class="dots">⋮</b></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="tab-page" id="payments">
+      <div class="panel">
+        <div class="panel-title"><h3>Billing overview</h3><button class="link" onclick="exportCSV()">Export CSV</button></div>
+        <div class="metrics" style="margin:0">
+          <article class="metric"><div class="metric-head"><span>Collected this month</span><span class="metric-icon">₹</span></div><strong>₹3.64L</strong><span class="trend">↑ 9.8%</span></article>
+          <article class="metric"><div class="metric-head"><span>Outstanding</span><span class="metric-icon">!</span></div><strong>₹19,200</strong><span class="trend down">9 renewals due</span></article>
+        </div>
+      </div>
+    </section>
+
+    <section class="tab-page" id="reports">
+      <div class="panel">
+        <div class="panel-title"><h3>Insights</h3></div>
+        <p style="color:var(--muted)">Track revenue, retention, attendance and pipeline conversion across the studio.</p>
+        <div class="schedule">
+          <div class="session"><b class="time">01</b><div><strong>Monthly revenue report</strong><span>August 2026 · ₹3.64L collected</span></div><button class="link" onclick="openReport('revenue')">Open</button></div>
+          <div class="session"><b class="time">02</b><div><strong>Member retention report</strong><span>91% active renewal rate</span></div><button class="link" onclick="openReport('retention')">Open</button></div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <nav class="mobile-nav">
+    <button class="active" data-view="dashboard"><b>◧</b>Home</button>
+    <button data-view="members"><b>◐</b>Members</button>
+    <button data-view="schedule"><b>▤</b>Sessions</button>
+    <button data-view="leads"><b>◔</b>Pipeline</button>
+  </nav>
+</div>
+<div class="toast" id="toast"></div>
+
+<script src="js/data.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/modal.js"></script>
+<script src="js/forms.js"></script>
+<script src="js/render.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
