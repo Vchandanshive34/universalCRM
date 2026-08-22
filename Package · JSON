@@ -1,0 +1,34 @@
+{
+  "name": "pulse-studio-crm",
+  "version": "1.0.0",
+  "description": "A modern web-based CRM system for fitness studios",
+  "main": "index.html",
+  "scripts": {
+    "start": "python -m http.server 8000",
+    "serve": "npx http-server",
+    "dev": "npx live-server"
+  },
+  "keywords": [
+    "crm",
+    "studio",
+    "fitness",
+    "gym",
+    "management",
+    "dashboard",
+    "members"
+  ],
+  "author": "Your Name",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yourusername/pulse-studio-crm.git"
+  },
+  "bugs": {
+    "url": "https://github.com/yourusername/pulse-studio-crm/issues"
+  },
+  "homepage": "https://github.com/yourusername/pulse-studio-crm",
+  "devDependencies": {
+    "http-server": "^14.1.1",
+    "live-server": "^1.2.2"
+  }
+}
