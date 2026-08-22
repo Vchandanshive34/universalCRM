@@ -1,0 +1,218 @@
+# Setup & Deployment Guide
+
+## Why CSS Isn't Loading
+
+The modular version (`index.html`) references external CSS with a relative path:
+```html
+<link rel="stylesheet" href="css/styles.css" />
+```
+
+This fails when:
+- ❌ Opening HTML directly with `file://` protocol
+- ❌ Files aren't in correct directory structure
+- ❌ Serving from GitHub Pages without proper folder setup
+- ❌ Relative paths don't match file structure
+
+---
+
+## Solution 1: Use Standalone Version (EASIEST) ✅
+
+**For GitHub Pages or quick testing:**
+
+Use `index-standalone.html` instead — it has all CSS & JS embedded in a single file.
+
+### Steps:
+1. Rename `index-standalone.html` → `index.html` (replace the original)
+2. Push to GitHub
+3. It will work immediately on GitHub Pages
+
+**Advantages:**
+- Single file, no path issues
+- Works everywhere (local, GitHub Pages, email)
+- No setup required
+- Easy to share
+
+**Trade-off:**
+- Not modular (harder to edit large codebases)
+- Larger file size
+
+---
+
+## Solution 2: Fix Folder Structure (RECOMMENDED for Development)
+
+Keep the modular setup but ensure proper structure:
+
+### Required Structure:
+```
+your-repo/
+├── index.html              ← Main file
+├── css/
+│   └── styles.css         ← Must be in css/ folder
+├── js/
+│   ├── data.js
+│   ├── auth.js
+│   ├── modal.js
+│   ├── forms.js
+│   ├── render.js
+│   └── app.js
+└── README.md
+```
+
+### Upload to GitHub:
+```bash
+# Initialize git
+git init
+
+# Add all files maintaining structure
+git add .
+git commit -m "Add Pulse Studio CRM"
+
+# Push to GitHub
+git remote add origin https://github.com/yourusername/pulse-studio-crm.git
+git branch -M main
+git push -u origin main
+```
+
+### Enable GitHub Pages:
+1. Go to **Settings** → **Pages**
+2. Select `main` branch as source
+3. Save
+4. Site will be available at `https://yourusername.github.io/pulse-studio-crm/`
+
+### Run Locally:
+```bash
+# Python 3
+python -m http.server 8000
+
+# Python 2
+python -m SimpleHTTPServer 8000
+
+# Node.js
+npx http-server
+
+# Live Server (VS Code)
+# Install "Live Server" extension, right-click index.html → "Open with Live Server"
+```
+
+**Advantages:**
+- Modular, organized code
+- Easy to maintain and update
+- Industry standard structure
+- Scalable for adding features
+
+**Disadvantages:**
+- Requires folder structure
+- Must use web server (not `file://`)
+
+---
+
+## Solution 3: Inline CSS in index.html
+
+If you want a single file but need modularity, add CSS to the `<head>`:
+
+```html
+<!doctype html>
+<html>
+<head>
+  <style>
+    /* All CSS here */
+  </style>
+</head>
+<body>
+  <!-- HTML -->
+  <script>
+    // All JS here
+  </script>
+</body>
+</html>
+```
+
+---
+
+## Deployment Comparison
+
+| Method | Local | GitHub Pages | Reliability | Maintainability |
+|--------|-------|--------------|-------------|-----------------|
+| Standalone | ✅ | ✅ | ⭐⭐⭐ | ⭐ |
+| Modular | ⚠️ (needs server) | ✅ | ⭐⭐⭐ | ⭐⭐⭐ |
+| Inlined CSS | ✅ | ✅ | ⭐⭐⭐ | ⭐⭐ |
+
+---
+
+## Quick Deployment Checklist
+
+### For Local Testing
+- [ ] Use Python/Node server (not `file://`)
+- [ ] Check folder structure matches paths in HTML
+- [ ] All files in correct directories
+- [ ] No typos in file paths
+
+### For GitHub Pages
+- [ ] Use standalone version OR ensure folder structure
+- [ ] Files pushed to GitHub
+- [ ] GitHub Pages enabled in Settings
+- [ ] Check at `yourusername.github.io/repo-name/`
+
+### For Production
+- [ ] Use HTTPS (GitHub Pages default)
+- [ ] Minify CSS/JS for performance
+- [ ] Optimize images
+- [ ] Add manifest for PWA (optional)
+- [ ] Set up CI/CD pipeline (optional)
+
+---
+
+## Troubleshooting
+
+### "CSS Not Loading"
+**Check:**
+1. Open browser DevTools (F12)
+2. Go to **Network** tab
+3. Reload page
+4. Look for failed `.css` requests
+5. Check the path in red failed request
+6. Verify file exists in that location
+
+**Fix:**
+- Use web server instead of `file://`
+- Use standalone version
+- Verify folder structure
+
+### "JavaScript Not Working"
+**Check:**
+1. Open **Console** tab in DevTools
+2. Look for red error messages
+3. Check file paths match HTML
+
+**Fix:**
+- Ensure all `<script src=...>` paths are correct
+- Use standalone version to eliminate path issues
+
+### "Links Are Broken"
+- Use relative paths like `href="members"`
+- Not absolute paths like `href="/members"`
+
+---
+
+## Recommended Setup
+
+### For This Project:
+1. **Start with**: `index-standalone.html` (rename to `index.html`)
+2. **When ready to expand**: Switch to modular version with proper folder structure
+3. **For CI/CD**: Add build script to inline files automatically
+
+### File Size Comparison:
+- Standalone: ~90 KB (single file, everything included)
+- Modular: 70-80 KB total (split across files, faster caching)
+
+---
+
+## Next Steps
+
+1. **Choose a solution** above based on your needs
+2. **Test locally** with a web server
+3. **Push to GitHub** with correct structure
+4. **Enable GitHub Pages** in Settings
+5. **Share your URL** with team
+
+Questions? Check README.md or open an issue on GitHub.
