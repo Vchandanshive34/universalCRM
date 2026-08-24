@@ -1,0 +1,415 @@
+<!--
+  Pulse CRM Dashboard Widget - Recent Website Visitors
+
+  Add this widget to your Pulse CRM dashboard to display visitors
+  captured from your Fit & Fight Club website
+
+  This widget fetches data from Supabase and displays real-time visitor info
+-->
+
+<style>
+  .ffc-dashboard-widget {
+    background: white;
+    border-radius: 8px;
+    border: 1px solid #e0e0e0;
+    padding: 24px;
+    margin-bottom: 20px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  }
+
+  .ffc-widget-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    border-bottom: 2px solid #f0f0f0;
+    padding-bottom: 16px;
+  }
+
+  .ffc-widget-title {
+    font-size: 18px;
+    font-weight: 600;
+    color: #0a0909;
+    margin: 0;
+  }
+
+  .ffc-refresh-btn {
+    background: #f5f5f5;
+    border: 1px solid #ddd;
+    padding: 8px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 500;
+    transition: background-color 0.2s;
+  }
+
+  .ffc-refresh-btn:hover {
+    background: #e8e8e8;
+  }
+
+  .ffc-refresh-btn.loading {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  .ffc-visitor-card {
+    display: flex;
+    align-items: flex-start;
+    padding: 16px;
+    margin-bottom: 12px;
+    background: #f9f9f9;
+    border-left: 4px solid #FF6B35;
+    border-radius: 4px;
+    transition: background-color 0.2s;
+  }
+
+  .ffc-visitor-card:hover {
+    background: #f0f0f0;
+  }
+
+  .ffc-visitor-card.no-contact {
+    border-left-color: #bbb;
+  }
+
+  .ffc-visitor-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #FF6B35, #FF8C42);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    margin-right: 12px;
+    flex-shrink: 0;
+  }
+
+  .ffc-visitor-content {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .ffc-visitor-name {
+    font-weight: 600;
+    color: #0a0909;
+    margin: 0 0 4px 0;
+    word-break: break-all;
+  }
+
+  .ffc-visitor-details {
+    font-size: 13px;
+    color: #666;
+    margin: 4px 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .ffc-visitor-detail-icon {
+    color: #FF6B35;
+    font-weight: bold;
+  }
+
+  .ffc-visitor-page {
+    display: inline-block;
+    background: #e8e8e8;
+    padding: 2px 8px;
+    border-radius: 3px;
+    font-size: 11px;
+    color: #555;
+  }
+
+  .ffc-visitor-time {
+    font-size: 12px;
+    color: #999;
+    margin-top: 8px;
+  }
+
+  .ffc-stats-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 16px;
+    margin-bottom: 20px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid #f0f0f0;
+  }
+
+  .ffc-stat-box {
+    text-align: center;
+  }
+
+  .ffc-stat-number {
+    font-size: 28px;
+    font-weight: bold;
+    color: #FF6B35;
+  }
+
+  .ffc-stat-label {
+    font-size: 12px;
+    color: #666;
+    margin-top: 4px;
+  }
+
+  .ffc-empty-state {
+    text-align: center;
+    padding: 40px 20px;
+    color: #999;
+  }
+
+  .ffc-empty-icon {
+    font-size: 48px;
+    margin-bottom: 12px;
+  }
+
+  .ffc-loading {
+    text-align: center;
+    padding: 20px;
+    color: #999;
+  }
+
+  .ffc-error {
+    background: #fef5f5;
+    border: 1px solid #ffcccc;
+    color: #cc0000;
+    padding: 12px;
+    border-radius: 4px;
+    font-size: 13px;
+    margin-bottom: 16px;
+  }
+
+  .ffc-lead-badge {
+    display: inline-block;
+    background: #2ecc71;
+    color: white;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: bold;
+    margin-left: 8px;
+  }
+
+  @media (max-width: 768px) {
+    .ffc-stats-row {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+</style>
+
+<!-- Dashboard Widget HTML -->
+<div class="ffc-dashboard-widget">
+  <div class="ffc-widget-header">
+    <h2 class="ffc-widget-title">📊 Website Visitors</h2>
+    <button class="ffc-refresh-btn" id="ffc-refresh-widget">Refresh</button>
+  </div>
+
+  <div id="ffc-error-container"></div>
+
+  <div class="ffc-stats-row" id="ffc-stats-container">
+    <div class="ffc-stat-box">
+      <div class="ffc-stat-number" id="total-visitors">-</div>
+      <div class="ffc-stat-label">Total Visitors (30d)</div>
+    </div>
+    <div class="ffc-stat-box">
+      <div class="ffc-stat-number" id="leads-captured">-</div>
+      <div class="ffc-stat-label">Leads Captured</div>
+    </div>
+    <div class="ffc-stat-box">
+      <div class="ffc-stat-number" id="today-visitors">-</div>
+      <div class="ffc-stat-label">Today's Visits</div>
+    </div>
+  </div>
+
+  <div id="ffc-loading" class="ffc-loading">Loading visitors...</div>
+  <div id="ffc-visitors-container"></div>
+</div>
+
+<script>
+  /**
+   * Pulse CRM Dashboard Widget - Website Visitors
+   * Displays real-time visitor data from Supabase
+   */
+
+  class FFCVisitorWidget {
+    constructor() {
+      // ⚠️ REPLACE THESE WITH YOUR SUPABASE CREDENTIALS
+      this.SUPABASE_URL = 'https://YOUR_PROJECT_ID.supabase.co';
+      this.SUPABASE_ANON_KEY = 'YOUR_ANON_PUBLIC_KEY';
+      this.TABLE_NAME = 'visitors';
+
+      this.init();
+    }
+
+    init() {
+      this.setupEventListeners();
+      this.loadVisitors();
+
+      // Auto-refresh every 30 seconds
+      setInterval(() => this.loadVisitors(), 30000);
+    }
+
+    setupEventListeners() {
+      const refreshBtn = document.getElementById('ffc-refresh-widget');
+      if (refreshBtn) {
+        refreshBtn.addEventListener('click', () => this.loadVisitors());
+      }
+    }
+
+    async loadVisitors() {
+      const refreshBtn = document.getElementById('ffc-refresh-widget');
+      const container = document.getElementById('ffc-visitors-container');
+      const loadingEl = document.getElementById('ffc-loading');
+      const errorContainer = document.getElementById('ffc-error-container');
+
+      try {
+        refreshBtn.classList.add('loading');
+        refreshBtn.disabled = true;
+        loadingEl.style.display = 'block';
+        errorContainer.innerHTML = '';
+
+        // Fetch recent visitors (last 30 days, limit 25)
+        const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+
+        const response = await fetch(
+          `${this.SUPABASE_URL}/rest/v1/${this.TABLE_NAME}?created_at=gte.${thirtyDaysAgo}&order=created_at.desc&limit=50`,
+          {
+            headers: {
+              'apikey': this.SUPABASE_ANON_KEY,
+              'Authorization': `Bearer ${this.SUPABASE_ANON_KEY}`
+            }
+          }
+        );
+
+        if (!response.ok) {
+          throw new Error(`API error: ${response.status}`);
+        }
+
+        const visitors = await response.json();
+
+        // Update stats
+        this.updateStats(visitors);
+
+        // Render visitors list
+        this.renderVisitors(visitors);
+
+        loadingEl.style.display = 'none';
+
+      } catch (error) {
+        console.error('Error loading visitors:', error);
+        errorContainer.innerHTML = `
+          <div class="ffc-error">
+            ⚠️ Error loading visitors. Check your Supabase credentials.
+          </div>
+        `;
+        loadingEl.innerHTML = 'Failed to load visitors';
+      } finally {
+        refreshBtn.classList.remove('loading');
+        refreshBtn.disabled = false;
+      }
+    }
+
+    updateStats(visitors) {
+      const today = new Date().toDateString();
+      const todayVisits = visitors.filter(v => new Date(v.created_at).toDateString() === today).length;
+      const leadsWithContact = visitors.filter(v => v.visitor_email || v.visitor_phone).length;
+
+      document.getElementById('total-visitors').textContent = visitors.length;
+      document.getElementById('leads-captured').textContent = leadsWithContact;
+      document.getElementById('today-visitors').textContent = todayVisits;
+    }
+
+    renderVisitors(visitors) {
+      const container = document.getElementById('ffc-visitors-container');
+
+      if (!visitors.length) {
+        container.innerHTML = `
+          <div class="ffc-empty-state">
+            <div class="ffc-empty-icon">👋</div>
+            <p>No visitors yet. Your tracking script is ready to capture leads!</p>
+          </div>
+        `;
+        return;
+      }
+
+      // Group by day
+      const groupedByDay = this.groupByDay(visitors);
+
+      container.innerHTML = Object.entries(groupedByDay)
+        .map(([date, dayVisitors]) => `
+          <div>
+            <div style="font-size: 12px; color: #999; margin: 16px 0 8px 0; font-weight: 600;">
+              ${date}
+            </div>
+            ${dayVisitors.map(v => this.renderVisitorCard(v)).join('')}
+          </div>
+        `)
+        .join('');
+    }
+
+    renderVisitorCard(visitor) {
+      const hasContact = visitor.visitor_email || visitor.visitor_phone;
+      const displayName = visitor.visitor_email || visitor.visitor_phone || 'Anonymous Visitor';
+      const initials = displayName.charAt(0).toUpperCase();
+
+      return `
+        <div class="ffc-visitor-card ${!hasContact ? 'no-contact' : ''}">
+          <div class="ffc-visitor-avatar">${initials}</div>
+          <div class="ffc-visitor-content">
+            <p class="ffc-visitor-name">
+              ${displayName}
+              ${hasContact ? '<span class="ffc-lead-badge">LEAD</span>' : ''}
+            </p>
+            ${visitor.visitor_email ? `
+              <div class="ffc-visitor-details">
+                <span class="ffc-visitor-detail-icon">✉️</span>
+                ${visitor.visitor_email}
+              </div>
+            ` : ''}
+            ${visitor.visitor_phone ? `
+              <div class="ffc-visitor-details">
+                <span class="ffc-visitor-detail-icon">📞</span>
+                ${visitor.visitor_phone}
+              </div>
+            ` : ''}
+            <div class="ffc-visitor-details">
+              <span class="ffc-visitor-detail-icon">📄</span>
+              <span class="ffc-visitor-page">${visitor.page_visited || 'Home'}</span>
+            </div>
+            <div class="ffc-visitor-time">
+              ${this.formatTime(visitor.created_at)}
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    groupByDay(visitors) {
+      const grouped = {};
+      visitors.forEach(v => {
+        const date = new Date(v.created_at).toLocaleDateString('en-US', {
+          month: 'short',
+          day: 'numeric',
+          year: 'numeric'
+        });
+        if (!grouped[date]) grouped[date] = [];
+        grouped[date].push(v);
+      });
+      return grouped;
+    }
+
+    formatTime(timestamp) {
+      const date = new Date(timestamp);
+      return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+    }
+  }
+
+  // Initialize widget when DOM is ready
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => {
+      new FFCVisitorWidget();
+    });
+  } else {
+    new FFCVisitorWidget();
+  }
+</script>
